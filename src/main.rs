@@ -1,18 +1,21 @@
+#![warn(trivial_casts)]
+#![forbid(unused, unused_extern_crates, unused_import_braces, unused_qualifications)]
+
 extern crate slack;
 extern crate serde_json;
 
+mod logtail;
+
 use std::process;
 
-
 struct SlackHandler {
-    will_exit: bool,
+    will_exit: bool
 }
-
 
 impl SlackHandler {
     fn new() -> SlackHandler {
-        return SlackHandler{
-            will_exit: false,
+        return SlackHandler {
+            will_exit: false
         }
     }
 
@@ -59,15 +62,14 @@ impl SlackHandler {
     }
 }
 
-#[allow(unused_variables)]
 impl slack::EventHandler for SlackHandler {
-    fn on_receive(&mut self, cli: &mut slack::RtmClient, json_str: &str){
+    fn on_receive(&mut self, cli: &mut slack::RtmClient, json_str: &str) {
         let data: serde_json::Value = match serde_json::from_str(json_str) {
             Ok(value) => value,
             Err(error) => {
                 println!("{:?}", error);
                 return;
-            },
+            }
         };
 
         match self.parse_msg(cli, data) {
@@ -76,18 +78,15 @@ impl slack::EventHandler for SlackHandler {
         }
     }
 
-    fn on_ping(&mut self, cli: &mut slack::RtmClient){
-    }
+    fn on_ping(&mut self, _: &mut slack::RtmClient) {}
 
-    fn on_close(&mut self, cli: &mut slack::RtmClient){
-    }
+    fn on_close(&mut self, _: &mut slack::RtmClient) {}
 
-    fn on_connect(&mut self, cli: &mut slack::RtmClient){
+    fn on_connect(&mut self, cli: &mut slack::RtmClient) {
         println!("Successfully connected to the Slack API server");
         let _ = cli.send_message("#wurstminebot-test", "I'm back!");
     }
 }
-
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
