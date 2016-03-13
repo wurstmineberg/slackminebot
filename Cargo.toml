@@ -9,6 +9,9 @@ authors = [
 [[bin]]
 name = "slackminebot"
 path = "src/main.rs"
+doc = false
+test = false
+bench = false
 
 [dependencies]
 serde = "*"
