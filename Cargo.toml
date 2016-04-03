@@ -1,13 +1,19 @@
 [package]
 name = "slackminebot"
 version = "0.1.0"
-authors = ["Fenhl <fenhl@fenhl.net>", "farthen <me@farthen.de>"]
+authors = [
+    "Fenhl <fenhl@fenhl.net>",
+    "farthen <me@farthen.de>"
+]
 
 [[bin]]
 name = "slackminebot"
 path = "src/main.rs"
+doc = false
+test = false
+bench = false
 
 [dependencies]
-slack = "*"
 serde = "*"
 serde_json = "*"
+slack = "*"
