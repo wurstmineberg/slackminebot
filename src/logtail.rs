@@ -30,7 +30,17 @@ impl<'a> Iterator for LogTail<'a> {
             if self.file.is_none() {
                 let mut f = BufReader::new(try!(File::open(self.path)));
                 self.pos = try!(f.seek(SeekFrom::End(0)));
-                //TODO seek back to last newline
+                // seek back to last newline
+                while self.pos > 0 {
+                    self.pos = try!(f.seek(SeekFrom::Current(-1)));
+                    let mut buf = [0];
+                    try!(f.read_exact(&mut buf));
+                    if buf[0] == b'\n' {
+                        break;
+                    } else {
+                        self.pos = try!(f.seek(SeekFrom::Current(-1)));
+                    }
+                }
                 self.file = Some(f);
             }
             let mut buf = String::default();
