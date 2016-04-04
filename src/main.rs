@@ -6,75 +6,51 @@ extern crate serde_json;
 
 mod logtail;
 
-use std::process;
-
 struct SlackHandler {
     will_exit: bool
 }
 
-impl SlackHandler {
-    fn new() -> SlackHandler {
+impl Default for SlackHandler {
+    fn default() -> SlackHandler {
         return SlackHandler {
             will_exit: false
         }
     }
-
-    fn parse_msg(&mut self, cli: &mut slack::RtmClient, value: serde_json::Value) -> Result<(), String> {
-        let error = format!("Invalid Message Received {:?}", value);
-
-        let map = try!(value.as_object().ok_or(error.clone()));
-        let ty = match map.get("type") {
-            Some(val) => try!(val.as_string().ok_or(error.clone())),
-            None => {
-                if map.get("ok").is_some() {
-                    "result"
-                } else {
-                    return Err(error);
-                }
-            }
-        };
-        if ty == "message" {
-            match map.get("text") {
-                Some(val) => {
-                    let text = try!(val.as_string().ok_or(error.clone()));
-                    if text == "!test" {
-                        let _ = cli.send_message("#wurstminebot-test", "got test msg");
-                    } else if text == "!quit" {
-                        let _ = cli.send_message("#wurstminebot-test", "bye");
-                        self.will_exit = true;
-                    }
-                }
-                None => return Ok(())
-            }
-        } else if ty == "result" {
-            if self.will_exit {
-                process::exit(0);
-            }
-
-            let ok_val = try!(map.get("ok").ok_or(error.clone()));
-            let ok = try!(ok_val.as_boolean().ok_or(error.clone()));
-            if !ok {
-                return Err(format!("Got not okay response: {:?}", value));
-            }
-        }
-
-        Ok(())
-    }
 }
 
 impl slack::EventHandler for SlackHandler {
-    fn on_event(&mut self, cli: &mut slack::RtmClient, _: Result<&slack::Event, slack::Error>, raw_json: &str) {
-        let data: serde_json::Value = match serde_json::from_str(raw_json) {
-            Ok(value) => value,
+    fn on_event(&mut self, cli: &mut slack::RtmClient, event_result: Result<&slack::Event, slack::Error>, raw_json: &str) {
+        let event = match event_result {
+            Ok(event) => event,
             Err(error) => {
-                println!("{:?}", error);
+                match serde_json::from_str::<serde_json::Value>(raw_json) {
+                    Ok(value) => {
+                        println!("Slack error: {:?}, JSON: {:?}", error, value);
+                    }
+                    Err(error) => {
+                        println!("Slack error: {:?}, JSON unreadable, raw string: {:?}", error, raw_json);
+                    }
+                };
                 return;
             }
         };
-
-        match self.parse_msg(cli, data) {
-            Ok(()) => (),
-            Err(msg) => println!("{}", msg)
+        match *event {
+            slack::Event::Message(ref message) => {
+                match *message {
+                    slack::Message::Standard { ts: _, channel: _, user: _, ref text, is_starred: _, pinned_to: _, reactions: _, edited: _, attachments: _ } => {
+                        if let Some(ref text) = *text {
+                            if text == "!test" {
+                                let _ = cli.send_message("#wurstminebot-test", "got test msg");
+                            } else if text == "!quit" {
+                                let _ = cli.send_message("#wurstminebot-test", "bye");
+                                self.will_exit = true;
+                            }
+                        }
+                    }
+                    ref m => { println!("Message event not implemented: {:?}", m); } //TODO
+                }
+            }
+            ref e => { println!("Slack event not implemented: {:?}", e); } //TODO
         }
     }
 
@@ -96,9 +72,8 @@ fn main() {
             args[x-1].clone()
         }
     };
-    let mut handler = SlackHandler::new();
     let mut cli = slack::RtmClient::new(&api_key);
-    cli.login_and_run::<SlackHandler>(&mut handler).unwrap();
+    cli.login_and_run(&mut SlackHandler::default()).unwrap();
     println!("{}", cli.get_name().unwrap());
     println!("{}", cli.get_team().unwrap().name);
 }
