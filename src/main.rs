@@ -63,8 +63,8 @@ impl SlackHandler {
 }
 
 impl slack::EventHandler for SlackHandler {
-    fn on_receive(&mut self, cli: &mut slack::RtmClient, json_str: &str) {
-        let data: serde_json::Value = match serde_json::from_str(json_str) {
+    fn on_event(&mut self, cli: &mut slack::RtmClient, _: Result<&slack::Event, slack::Error>, raw_json: &str) {
+        let data: serde_json::Value = match serde_json::from_str(raw_json) {
             Ok(value) => value,
             Err(error) => {
                 println!("{:?}", error);
@@ -97,12 +97,8 @@ fn main() {
         }
     };
     let mut handler = SlackHandler::new();
-    let mut cli = slack::RtmClient::new();
-    let r = cli.login_and_run::<SlackHandler>(&mut handler, &api_key);
-    match r {
-        Ok(_) => {},
-        Err(err) => panic!("Error: {}", err)
-    }
+    let mut cli = slack::RtmClient::new(&api_key);
+    cli.login_and_run::<SlackHandler>(&mut handler).unwrap();
     println!("{}", cli.get_name().unwrap());
     println!("{}", cli.get_team().unwrap().name);
 }
