@@ -35,6 +35,10 @@ impl slack::EventHandler for SlackHandler {
             }
         };
         match *event {
+            slack::Event::Hello => {
+                println!("Successfully connected to the Slack API server");
+                let _ = cli.send_message("#wurstminebot-test", "I'm back!");
+            }
             slack::Event::Message(ref message) => {
                 match *message {
                     slack::Message::Standard { ts: _, channel: _, user: _, ref text, is_starred: _, pinned_to: _, reactions: _, edited: _, attachments: _ } => {
@@ -58,9 +62,8 @@ impl slack::EventHandler for SlackHandler {
 
     fn on_close(&mut self, _: &mut slack::RtmClient) {}
 
-    fn on_connect(&mut self, cli: &mut slack::RtmClient) {
-        println!("Successfully connected to the Slack API server");
-        let _ = cli.send_message("#wurstminebot-test", "I'm back!");
+    fn on_connect(&mut self, _: &mut slack::RtmClient) {
+        println!("Connection opened");
     }
 }
 
