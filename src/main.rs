@@ -54,6 +54,11 @@ impl slack::EventHandler for SlackHandler {
                     ref m => { println!("Message event not implemented: {:?}", m); } //TODO
                 }
             }
+            slack::Event::MessageSent { reply_to: _, ts: _, text: _ } => {
+                if self.will_exit {
+                    std::process::exit(0);
+                }
+            }
             ref e => { println!("Slack event not implemented: {:?}", e); } //TODO
         }
     }
